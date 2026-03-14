@@ -3,7 +3,9 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -134,36 +136,45 @@ func TestBinary(t *testing.T) {
 
 func TestSIGTERMExits143(t *testing.T) {
 	t.Run("SIGTERM exits 143", func(t *testing.T) {
-		var stdout, stderr bytes.Buffer
-		cmd := exec.Command(binaryPath, "-pause")
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, binaryPath, "-pause")
+		stderrPipe, err := cmd.StderrPipe()
+		if err != nil {
+			t.Fatalf("failed to create stderr pipe: %v", err)
+		}
+		var stdout bytes.Buffer
 		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
 
 		if err := cmd.Start(); err != nil {
 			t.Fatalf("failed to start binary: %v", err)
 		}
 
-		// Allow the process time to start up and enter the pause sleep.
-		time.Sleep(100 * time.Millisecond)
+		// Block until the binary signals it has entered the pause select.
+		scanner := bufio.NewScanner(stderrPipe)
+		for scanner.Scan() {
+			if scanner.Text() == "ready" {
+				break
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			t.Fatalf("reading stderr pipe: %v", err)
+		}
 
 		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			t.Fatalf("failed to send SIGTERM: %v", err)
 		}
 
-		err := cmd.Wait()
-		code := 0
-		if err != nil {
-			var exitErr *exec.ExitError
-			if errors.As(err, &exitErr) {
-				code = exitErr.ExitCode()
-			} else {
-				t.Fatalf("unexpected error waiting for binary: %v", err)
+		var exitErr *exec.ExitError
+		if err := cmd.Wait(); errors.As(err, &exitErr) {
+			if exitErr.ExitCode() != 143 {
+				t.Errorf("exit code = %d, want 143 (stdout: %q)", exitErr.ExitCode(), stdout.String())
 			}
-		}
-
-		if code != 143 {
-			t.Errorf("exit code = %d, want 143 (stdout: %q, stderr: %q)",
-				code, stdout.String(), stderr.String())
+		} else if err != nil {
+			t.Fatalf("unexpected error waiting for binary: %v", err)
+		} else {
+			t.Errorf("exit code = 0, want 143")
 		}
 	})
 }

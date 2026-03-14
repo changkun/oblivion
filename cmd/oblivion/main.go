@@ -65,6 +65,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 
 	if pause {
+		if ctx.Err() == nil {
+			fmt.Fprintln(stderr, "ready")
+		}
 		select {
 		case <-ctx.Done():
 		case <-time.After(pauseDuration):
