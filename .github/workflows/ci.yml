@@ -21,12 +21,12 @@ jobs:
       - name: test
         run: make test
 
+      - name: test-integration
+        run: make test-integration
+
       - uses: golangci/golangci-lint-action@v6
         with:
           args: ./...
-
-      - name: lint
-        run: make lint
 
       - uses: actions/upload-artifact@v4
         with:
