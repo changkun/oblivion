@@ -50,6 +50,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	stop()
+	os.Exit(code)
 }

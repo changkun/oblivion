@@ -137,6 +137,15 @@ func TestRun_OutputContent(t *testing.T) {
 	}
 }
 
+// TestRun_VerboseNilLog verifies that Run does not panic or error when Verbose
+// is true but Log is nil; it should silently discard the diagnostic output.
+func TestRun_VerboseNilLog(t *testing.T) {
+	var buf bytes.Buffer
+	err := app.Run(context.Background(), app.Config{Output: &buf, Verbose: true, Log: nil})
+	require.NoError(t, err, "Run should not error when Verbose=true and Log=nil")
+	assert.Equal(t, "oblivion\n", buf.String(), "Run should still write standard output")
+}
+
 // TestRun_CancelledContext verifies that Run returns a non-nil error immediately
 // when the provided context is already cancelled, without writing to Output.
 func TestRun_CancelledContext(t *testing.T) {
