@@ -8,8 +8,12 @@ build:
 	go build -o bin/oblivion ./cmd/oblivion
 
 # Run all tests with the race detector in a single pass, collecting coverage
-# for all packages and writing it to coverage.out so CI can ingest it.
-# The build fails when total coverage drops below 80 %.
+# for all packages (./...) and writing it to coverage.out so CI can ingest it.
+# The threshold check uses the `total:` line from `go tool cover -func`, which
+# is a statement-weighted average across all packages.  The main() stub (one
+# statement calling os.Exit) is inherently untestable but contributes
+# negligibly; the combined total still satisfies the 80% gate.
+# The build fails when coverage drops below 80%.
 test:
 	go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
 	@go tool cover -func=coverage.out | tee /dev/stderr | \
