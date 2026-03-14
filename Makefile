@@ -8,9 +8,9 @@ build:
 	go build -o bin/oblivion ./cmd/oblivion
 
 # Run all tests with the race detector.
-# Coverage is measured for ./internal/... only (cmd/main is a thin wiring
-# layer not suitable for unit testing) and written to coverage.out so CI can
-# ingest it.  The build fails when coverage drops below 80 %.
+# Coverage threshold is measured for ./internal/... only and written to
+# coverage.out so CI can ingest it.  The build fails when coverage drops
+# below 80 %.
 test:
 	go test -race -count=1 ./...
 	go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./internal/...
