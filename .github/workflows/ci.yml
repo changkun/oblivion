@@ -21,8 +21,10 @@ jobs:
       - name: test
         run: make test
 
+      - uses: golangci/golangci-lint-action@v6
+
       - name: lint
-        uses: golangci/golangci-lint-action@v6
+        run: make lint
 
       - uses: actions/upload-artifact@v4
         with:
