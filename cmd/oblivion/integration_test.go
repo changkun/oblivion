@@ -167,3 +167,38 @@ func TestSIGTERMExits143(t *testing.T) {
 		}
 	})
 }
+
+// TestSIGINTExits130 verifies that SIGINT causes the binary to exit with code
+// 130 (128+SIGINT) per the POSIX signal exit-code convention.
+// TODO: replace time.Sleep with a ready-signal handshake once main.go emits
+// "ready" to stderr before entering the pause select.
+func TestSIGINTExits130(t *testing.T) {
+	t.Run("SIGINT exits 130", func(t *testing.T) {
+		var stdout, stderr bytes.Buffer
+		cmd := exec.Command(binaryPath, "-pause")
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Start(); err != nil {
+			t.Fatalf("failed to start binary: %v", err)
+		}
+
+		// Allow the process time to start up and enter the pause sleep.
+		time.Sleep(100 * time.Millisecond)
+
+		if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
+			t.Fatalf("failed to send SIGINT: %v", err)
+		}
+
+		var exitErr *exec.ExitError
+		if err := cmd.Wait(); errors.As(err, &exitErr) {
+			if exitErr.ExitCode() != 130 {
+				t.Errorf("exit code = %d, want 130 (stdout: %q)", exitErr.ExitCode(), stdout.String())
+			}
+		} else if err != nil {
+			t.Fatalf("unexpected error waiting for binary: %v", err)
+		} else {
+			t.Errorf("exit code = 0, want 130")
+		}
+	})
+}
