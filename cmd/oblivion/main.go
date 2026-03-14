@@ -36,6 +36,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 1
 	}
+	if args := fs.Args(); len(args) > 0 {
+		fmt.Fprintf(stderr, "error: unexpected arguments: %v\nRun 'oblivion -help' for usage.\n", args)
+		return 1
+	}
 	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout, Log: stderr}); err != nil {
 		if ctx.Err() != nil {
 			// Context was cancelled by SIGINT/SIGTERM — suppress the message and

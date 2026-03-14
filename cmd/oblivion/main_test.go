@@ -49,6 +49,18 @@ func TestRun(t *testing.T) {
 			wantStderr: true,
 		},
 		{
+			name:       "positional arg rejected",
+			args:       []string{"foo"},
+			wantCode:   1,
+			wantStderr: true,
+		},
+		{
+			name:       "positional arg with flag rejected",
+			args:       []string{"-verbose", "bar"},
+			wantCode:   1,
+			wantStderr: true,
+		},
+		{
 			name:       "cancelled context exits 130 with empty stderr",
 			ctx:        func() context.Context { ctx, cancel := context.WithCancel(context.Background()); cancel(); return ctx }(),
 			args:       []string{},

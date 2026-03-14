@@ -70,6 +70,12 @@ func TestBinary(t *testing.T) {
 			wantStdout:         "",
 			wantStderrContains: "oblivion",
 		},
+		{
+			name:               "positional arg rejected",
+			args:               []string{"unexpected"},
+			wantCode:           1,
+			wantStderrContains: "unexpected arguments",
+		},
 	}
 
 	for _, tt := range tests {
