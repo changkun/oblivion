@@ -34,6 +34,13 @@ func TestRun(t *testing.T) {
 			wantStdout: true,
 			wantStderr: false,
 		},
+		{
+			name:       "-help exits 0 and writes to stderr",
+			args:       []string{"-help"},
+			wantCode:   0,
+			wantStdout: false,
+			wantStderr: true,
+		},
 	}
 
 	for _, tt := range tests {

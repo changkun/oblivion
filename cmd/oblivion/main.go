@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -16,10 +17,20 @@ import (
 func run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("oblivion", flag.ContinueOnError)
 	fs.SetOutput(stderr)
+	fs.Usage = func() {
+		fmt.Fprintln(fs.Output(), "oblivion – a task-running tool.")
+		fmt.Fprintln(fs.Output(), "Usage: oblivion [flags]")
+		fmt.Fprintln(fs.Output())
+		fmt.Fprintln(fs.Output(), "Flags:")
+		fs.PrintDefaults()
+	}
 	var verbose bool
 	fs.BoolVar(&verbose, "verbose", false, "enable verbose output")
 	fs.BoolVar(&verbose, "v", false, "enable verbose output (shorthand)")
 	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
 		return 1
 	}
 	if err := app.Run(app.Config{Verbose: verbose, Output: stdout}); err != nil {
