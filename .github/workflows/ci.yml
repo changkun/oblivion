@@ -27,7 +27,7 @@ jobs:
           path: coverage.out
           if-no-files-found: error
 
+      - uses: golangci/golangci-lint-action@v6
+
       - name: lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          args: ./...
+        run: make lint
