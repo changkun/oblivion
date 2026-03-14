@@ -81,6 +81,12 @@ func TestBinary(t *testing.T) {
 			wantCode:           1,
 			wantStderrContains: "unexpected arguments",
 		},
+		{
+			name:               "positional arg with flag rejected",
+			args:               []string{"-verbose", "bar"},
+			wantCode:           1,
+			wantStderrContains: "unexpected arguments",
+		},
 	}
 
 	for _, tt := range tests {
