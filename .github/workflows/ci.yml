@@ -21,13 +21,13 @@ jobs:
       - name: test
         run: make test
 
+      - uses: golangci/golangci-lint-action@v6
+
+      - name: lint
+        run: make lint
+
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage.out
           if-no-files-found: error
-
-      - uses: golangci/golangci-lint-action@v6
-
-      - name: lint
-        run: make lint
