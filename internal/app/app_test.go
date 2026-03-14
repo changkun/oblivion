@@ -81,7 +81,7 @@ func TestRun_OutputContent(t *testing.T) {
 			cfg:            app.Config{Output: new(bytes.Buffer), Log: new(bytes.Buffer), Verbose: true},
 			containsAll:    []string{"oblivion"},
 			notContainsAny: []string{"verbose:"},
-			logContainsAll: []string{"verbose:"},
+			logContainsAll: []string{"verbose:", "bytes"},
 			wantErr:        false,
 		},
 		{

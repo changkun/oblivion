@@ -30,7 +30,8 @@ func Run(ctx context.Context, cfg Config) error {
 		return errors.New("config.Output must not be nil")
 	}
 
-	if _, err := fmt.Fprintln(cfg.Output, "oblivion"); err != nil {
+	n, err := fmt.Fprintln(cfg.Output, "oblivion")
+	if err != nil {
 		return err
 	}
 
@@ -39,7 +40,7 @@ func Run(ctx context.Context, cfg Config) error {
 		if log == nil {
 			log = io.Discard
 		}
-		_, err := fmt.Fprintf(log, "verbose: output written to %T\n", cfg.Output)
+		_, err = fmt.Fprintf(log, "verbose: wrote %d bytes\n", n)
 		return err
 	}
 
