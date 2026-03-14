@@ -1,4 +1,4 @@
-.PHONY: build test test-cover lint clean
+.PHONY: build test test-cover test-integration lint clean
 
 # Default target
 all: build
@@ -18,6 +18,11 @@ test:
 	go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
 	@go tool cover -func=coverage.out | tee /dev/stderr | \
 		awk '/^total:/ { pct=$$3+0; if (pct < 80) { printf "FAIL: coverage %.1f%% < 80%%\n", pct; exit 1 } else { printf "OK:   coverage %.1f%% >= 80%%\n", pct } }'
+
+# Run integration tests against the real compiled binary.
+# Uses the 'integration' build tag so these are excluded from the normal test pass.
+test-integration: build
+	go test -tags integration -count=1 ./cmd/oblivion/
 
 # Open an HTML coverage report in the default browser (local development).
 test-cover: test
