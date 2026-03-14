@@ -59,6 +59,7 @@ func TestRun_OutputContent(t *testing.T) {
 		name           string
 		cfg            app.Config
 		containsAll    []string
+		notContainsAny []string
 		wantErr        bool
 	}{
 		{
@@ -72,6 +73,19 @@ func TestRun_OutputContent(t *testing.T) {
 			cfg:         app.Config{Output: new(bytes.Buffer), Verbose: true},
 			containsAll: []string{"oblivion"},
 			wantErr:     false,
+		},
+		{
+			name:        "verbose flag produces extra output",
+			cfg:         app.Config{Output: new(bytes.Buffer), Verbose: true},
+			containsAll: []string{"oblivion", "verbose:"},
+			wantErr:     false,
+		},
+		{
+			name:           "non-verbose output omits verbose line",
+			cfg:            app.Config{Output: new(bytes.Buffer), Verbose: false},
+			containsAll:    []string{"oblivion"},
+			notContainsAny: []string{"verbose:"},
+			wantErr:        false,
 		},
 	}
 
@@ -94,6 +108,12 @@ func TestRun_OutputContent(t *testing.T) {
 				assert.True(t,
 					strings.Contains(output, want),
 					"output %q should contain %q", output, want,
+				)
+			}
+			for _, absent := range tc.notContainsAny {
+				assert.False(t,
+					strings.Contains(output, absent),
+					"output %q should not contain %q", output, absent,
 				)
 			}
 		})

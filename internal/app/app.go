@@ -23,6 +23,14 @@ func Run(cfg Config) error {
 		return errors.New("config.Output must not be nil")
 	}
 
-	_, err := fmt.Fprintln(cfg.Output, "oblivion")
-	return err
+	if _, err := fmt.Fprintln(cfg.Output, "oblivion"); err != nil {
+		return err
+	}
+
+	if cfg.Verbose {
+		_, err := fmt.Fprintf(cfg.Output, "verbose: output written to %T\n", cfg.Output)
+		return err
+	}
+
+	return nil
 }

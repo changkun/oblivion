@@ -16,11 +16,13 @@ import (
 func run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("oblivion", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	verbose := fs.Bool("verbose", false, "enable verbose output")
+	var verbose bool
+	fs.BoolVar(&verbose, "verbose", false, "enable verbose output")
+	fs.BoolVar(&verbose, "v", false, "enable verbose output (shorthand)")
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
-	if err := app.Run(app.Config{Verbose: *verbose, Output: stdout}); err != nil {
+	if err := app.Run(app.Config{Verbose: verbose, Output: stdout}); err != nil {
 		fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}
