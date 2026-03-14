@@ -61,29 +61,32 @@ func TestRun_OutputContent(t *testing.T) {
 		cfg            app.Config
 		containsAll    []string
 		notContainsAny []string
+		logContainsAll []string
 		wantErr        bool
 	}{
 		{
 			name:        "default output contains program name",
-			cfg:         app.Config{Output: new(bytes.Buffer)},
+			cfg:         app.Config{Output: new(bytes.Buffer), Log: new(bytes.Buffer)},
 			containsAll: []string{"oblivion"},
 			wantErr:     false,
 		},
 		{
 			name:        "verbose flag does not cause error",
-			cfg:         app.Config{Output: new(bytes.Buffer), Verbose: true},
+			cfg:         app.Config{Output: new(bytes.Buffer), Log: new(bytes.Buffer), Verbose: true},
 			containsAll: []string{"oblivion"},
 			wantErr:     false,
 		},
 		{
-			name:        "verbose flag produces extra output",
-			cfg:         app.Config{Output: new(bytes.Buffer), Verbose: true},
-			containsAll: []string{"oblivion", "verbose:"},
-			wantErr:     false,
+			name:           "verbose flag produces extra output",
+			cfg:            app.Config{Output: new(bytes.Buffer), Log: new(bytes.Buffer), Verbose: true},
+			containsAll:    []string{"oblivion"},
+			notContainsAny: []string{"verbose:"},
+			logContainsAll: []string{"verbose:"},
+			wantErr:        false,
 		},
 		{
 			name:           "non-verbose output omits verbose line",
-			cfg:            app.Config{Output: new(bytes.Buffer), Verbose: false},
+			cfg:            app.Config{Output: new(bytes.Buffer), Log: new(bytes.Buffer), Verbose: false},
 			containsAll:    []string{"oblivion"},
 			notContainsAny: []string{"verbose:"},
 			wantErr:        false,
@@ -92,9 +95,11 @@ func TestRun_OutputContent(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Re-use the buffer stored in cfg so we can inspect output.
+			// Re-use the buffers stored in cfg so we can inspect output.
 			buf, ok := tc.cfg.Output.(*bytes.Buffer)
 			require.True(t, ok, "test bug: Output must be *bytes.Buffer")
+			logBuf, ok := tc.cfg.Log.(*bytes.Buffer)
+			require.True(t, ok, "test bug: Log must be *bytes.Buffer")
 
 			err := app.Run(context.Background(), tc.cfg)
 
@@ -116,6 +121,17 @@ func TestRun_OutputContent(t *testing.T) {
 					strings.Contains(output, absent),
 					"output %q should not contain %q", output, absent,
 				)
+			}
+
+			logOutput := logBuf.String()
+			for _, want := range tc.logContainsAll {
+				assert.True(t,
+					strings.Contains(logOutput, want),
+					"log output %q should contain %q", logOutput, want,
+				)
+			}
+			if !tc.cfg.Verbose {
+				assert.Empty(t, logOutput, "non-verbose run should write nothing to log")
 			}
 		})
 	}

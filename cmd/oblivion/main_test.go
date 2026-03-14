@@ -3,16 +3,19 @@ package main
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 )
 
 func TestRun(t *testing.T) {
 	tests := []struct {
-		name        string
-		args        []string
-		wantCode    int
-		wantStdout  bool // true = expect non-empty
-		wantStderr  bool // true = expect non-empty
+		name               string
+		args               []string
+		wantCode           int
+		wantStdout         bool   // true = expect non-empty
+		wantStderr         bool   // true = expect non-empty
+		wantStdoutExact    string // if non-empty, asserts exact stdout content
+		wantStderrContains string // if non-empty, asserts stderr contains this string
 	}{
 		{
 			name:       "no args exits 0 and writes to stdout",
@@ -29,11 +32,13 @@ func TestRun(t *testing.T) {
 			wantStderr: true,
 		},
 		{
-			name:       "verbose flag exits 0",
-			args:       []string{"-verbose"},
-			wantCode:   0,
-			wantStdout: true,
-			wantStderr: false,
+			name:               "verbose flag exits 0",
+			args:               []string{"-verbose"},
+			wantCode:           0,
+			wantStdout:         true,
+			wantStderr:         true,
+			wantStdoutExact:    "oblivion\n",
+			wantStderrContains: "verbose:",
 		},
 		{
 			name:       "-help exits 0 and writes to stderr",
@@ -63,6 +68,12 @@ func TestRun(t *testing.T) {
 			}
 			if !tt.wantStderr && stderr.Len() != 0 {
 				t.Errorf("expected empty stderr, got %q", stderr.String())
+			}
+			if tt.wantStdoutExact != "" && stdout.String() != tt.wantStdoutExact {
+				t.Errorf("stdout = %q, want %q", stdout.String(), tt.wantStdoutExact)
+			}
+			if tt.wantStderrContains != "" && !strings.Contains(stderr.String(), tt.wantStderrContains) {
+				t.Errorf("stderr %q does not contain %q", stderr.String(), tt.wantStderrContains)
 			}
 		})
 	}

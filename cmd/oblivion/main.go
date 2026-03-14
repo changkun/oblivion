@@ -36,7 +36,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 1
 	}
-	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout}); err != nil {
+	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout, Log: stderr}); err != nil {
 		fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}

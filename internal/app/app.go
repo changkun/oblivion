@@ -14,6 +14,8 @@ type Config struct {
 	Verbose bool
 	// Output is the writer used for all program output.
 	Output io.Writer
+	// Log is the writer for diagnostic output (verbose mode). Defaults to io.Discard when nil.
+	Log io.Writer
 }
 
 // Run is the main entrypoint for the application.
@@ -33,7 +35,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	if cfg.Verbose {
-		_, err := fmt.Fprintf(cfg.Output, "verbose: output written to %T\n", cfg.Output)
+		log := cfg.Log
+		if log == nil {
+			log = io.Discard
+		}
+		_, err := fmt.Fprintf(log, "verbose: output written to %T\n", cfg.Output)
 		return err
 	}
 
