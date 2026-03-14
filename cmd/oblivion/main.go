@@ -2,11 +2,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/wallfacer/oblivion/internal/app"
 )
@@ -14,7 +17,7 @@ import (
 // run parses args, executes the application, and returns an exit code.
 // stdout and stderr are injectable so the function can be tested without
 // spawning a subprocess.
-func run(args []string, stdout, stderr io.Writer) int {
+func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("oblivion", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {
@@ -33,7 +36,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		return 1
 	}
-	if err := app.Run(app.Config{Verbose: verbose, Output: stdout}); err != nil {
+	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout}); err != nil {
 		fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}
@@ -41,5 +44,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
 }

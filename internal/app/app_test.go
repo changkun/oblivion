@@ -25,6 +25,7 @@ package app_test
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
@@ -38,7 +39,7 @@ import (
 // Config and that it writes at least some output.
 func TestRun_Smoke(t *testing.T) {
 	var buf bytes.Buffer
-	err := app.Run(app.Config{Output: &buf})
+	err := app.Run(context.Background(), app.Config{Output: &buf})
 	require.NoError(t, err, "Run should not return an error with a valid config")
 	assert.NotEmpty(t, buf.String(), "Run should write output")
 }
@@ -46,7 +47,7 @@ func TestRun_Smoke(t *testing.T) {
 // TestRun_NilOutput verifies that Run returns an error when Output is nil,
 // preventing a nil-pointer panic at runtime.
 func TestRun_NilOutput(t *testing.T) {
-	err := app.Run(app.Config{Output: nil})
+	err := app.Run(context.Background(), app.Config{Output: nil})
 	require.Error(t, err, "Run must return an error when Output is nil")
 }
 
@@ -95,7 +96,7 @@ func TestRun_OutputContent(t *testing.T) {
 			buf, ok := tc.cfg.Output.(*bytes.Buffer)
 			require.True(t, ok, "test bug: Output must be *bytes.Buffer")
 
-			err := app.Run(tc.cfg)
+			err := app.Run(context.Background(), tc.cfg)
 
 			if tc.wantErr {
 				require.Error(t, err)
@@ -118,4 +119,17 @@ func TestRun_OutputContent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestRun_CancelledContext verifies that Run returns a non-nil error immediately
+// when the provided context is already cancelled, without writing to Output.
+func TestRun_CancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var buf bytes.Buffer
+	err := app.Run(ctx, app.Config{Output: &buf})
+
+	require.Error(t, err, "Run must return an error when context is already cancelled")
+	assert.Empty(t, buf.String(), "Run must not write output when context is cancelled")
 }

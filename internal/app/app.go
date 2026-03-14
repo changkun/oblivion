@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -18,7 +19,11 @@ type Config struct {
 // Run is the main entrypoint for the application.
 // It executes the program with the provided configuration and returns any
 // error encountered.
-func Run(cfg Config) error {
+func Run(ctx context.Context, cfg Config) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	if cfg.Output == nil {
 		return errors.New("config.Output must not be nil")
 	}
