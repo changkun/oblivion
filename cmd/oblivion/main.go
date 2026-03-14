@@ -9,10 +9,20 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/wallfacer/oblivion/internal/app"
 )
+
+// internalFlagsEnabled gates flags used only for integration testing.
+// These flags are registered in the binary but excluded from -help output.
+const internalFlagsEnabled = true
+
+// pauseDuration is how long the -pause flag causes run to wait.
+// It is a variable so tests can shorten it without waiting 5 seconds.
+var pauseDuration = 5 * time.Second
 
 // run parses args, executes the application, and returns an exit code.
 // stdout and stderr are injectable so the function can be tested without
@@ -25,11 +35,24 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(fs.Output(), "Usage: oblivion [flags]")
 		fmt.Fprintln(fs.Output())
 		fmt.Fprintln(fs.Output(), "Flags:")
-		fs.PrintDefaults()
+		fs.VisitAll(func(f *flag.Flag) {
+			if f.Usage == "" {
+				return // internal flag, hidden from -help
+			}
+			fmt.Fprintf(fs.Output(), "  -%s\n    \t%s\n", f.Name, f.Usage)
+		})
 	}
 	var verbose bool
 	fs.BoolVar(&verbose, "verbose", false, "enable verbose output")
 	fs.BoolVar(&verbose, "v", false, "enable verbose output (shorthand)")
+
+	var pause bool
+	if internalFlagsEnabled {
+		// -pause is an internal flag for integration tests; empty usage hides it
+		// from the custom Usage printer above.
+		fs.BoolVar(&pause, "pause", false, "")
+	}
+
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -40,6 +63,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "error: unexpected arguments: %v\nRun 'oblivion -help' for usage.\n", args)
 		return 1
 	}
+
+	if pause {
+		select {
+		case <-ctx.Done():
+		case <-time.After(pauseDuration):
+		}
+	}
+
 	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout, Log: stderr}); err != nil {
 		if ctx.Err() != nil {
 			// Context was cancelled by SIGINT/SIGTERM — suppress the message and
@@ -52,9 +83,40 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
+// watchSignal waits for either a signal on sigCh or ctx cancellation. When a
+// signal arrives, it is stored in val and cancel is called. Extracted to allow
+// unit testing of the signal-capture logic without spawning subprocesses.
+func watchSignal(ctx context.Context, cancel context.CancelFunc, sigCh <-chan os.Signal, val *atomic.Value) {
+	select {
+	case sig := <-sigCh:
+		val.Store(sig)
+		cancel()
+	case <-ctx.Done():
+	}
+}
+
+// computeExitCode returns the POSIX exit code for the process. If stored
+// contains a syscall.Signal (from watchSignal), the code is 128+signal;
+// otherwise runCode (the value returned by run) is used unchanged.
+func computeExitCode(runCode int, stored interface{}) int {
+	if sig, ok := stored.(syscall.Signal); ok {
+		return 128 + int(sig)
+	}
+	return runCode
+}
+
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var sigVal atomic.Value
+	go watchSignal(ctx, cancel, sigCh, &sigVal)
+
 	code := run(ctx, os.Args[1:], os.Stdout, os.Stderr)
-	stop()
-	os.Exit(code)
+	cancel()
+	signal.Stop(sigCh)
+
+	os.Exit(computeExitCode(code, sigVal.Load()))
 }

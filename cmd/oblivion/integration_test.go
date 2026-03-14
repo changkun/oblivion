@@ -10,7 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 )
 
 var binaryPath string
@@ -119,4 +121,40 @@ func TestBinary(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSIGTERMExits143(t *testing.T) {
+	t.Run("SIGTERM exits 143", func(t *testing.T) {
+		var stdout, stderr bytes.Buffer
+		cmd := exec.Command(binaryPath, "-pause")
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Start(); err != nil {
+			t.Fatalf("failed to start binary: %v", err)
+		}
+
+		// Allow the process time to start up and enter the pause sleep.
+		time.Sleep(100 * time.Millisecond)
+
+		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
+			t.Fatalf("failed to send SIGTERM: %v", err)
+		}
+
+		err := cmd.Wait()
+		code := 0
+		if err != nil {
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				code = exitErr.ExitCode()
+			} else {
+				t.Fatalf("unexpected error waiting for binary: %v", err)
+			}
+		}
+
+		if code != 143 {
+			t.Errorf("exit code = %d, want 143 (stdout: %q, stderr: %q)",
+				code, stdout.String(), stderr.String())
+		}
+	})
 }
