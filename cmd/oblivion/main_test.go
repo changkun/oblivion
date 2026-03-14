@@ -10,6 +10,7 @@ import (
 func TestRun(t *testing.T) {
 	tests := []struct {
 		name               string
+		ctx                context.Context
 		args               []string
 		wantCode           int
 		wantStdout         bool   // true = expect non-empty
@@ -47,12 +48,24 @@ func TestRun(t *testing.T) {
 			wantStdout: false,
 			wantStderr: true,
 		},
+		{
+			name:       "cancelled context exits 130 with empty stderr",
+			ctx:        func() context.Context { ctx, cancel := context.WithCancel(context.Background()); cancel(); return ctx }(),
+			args:       []string{},
+			wantCode:   130,
+			wantStdout: false,
+			wantStderr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if ctx == nil {
+				ctx = context.Background()
+			}
 			var stdout, stderr bytes.Buffer
-			code := run(context.Background(), tt.args, &stdout, &stderr)
+			code := run(ctx, tt.args, &stdout, &stderr)
 
 			if code != tt.wantCode {
 				t.Errorf("exit code = %d, want %d (stderr: %q)", code, tt.wantCode, stderr.String())

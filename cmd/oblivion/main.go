@@ -37,6 +37,11 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout, Log: stderr}); err != nil {
+		if ctx.Err() != nil {
+			// Context was cancelled by SIGINT/SIGTERM — suppress the message and
+			// exit 130 (128+SIGINT) per POSIX signal exit-code convention.
+			return 130
+		}
 		fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}
