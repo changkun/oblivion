@@ -46,6 +46,21 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs.BoolVar(&verbose, "verbose", false, "enable verbose output")
 	fs.BoolVar(&verbose, "v", false, "enable verbose output (shorthand)")
 
+	var fractal bool
+	fs.BoolVar(&fractal, "fractal", false, "render the Mandelbrot set as ASCII art")
+
+	var fractalWidth int
+	fs.IntVar(&fractalWidth, "fractal-width", 0, "width in columns (default: 78)")
+
+	var fractalHeight int
+	fs.IntVar(&fractalHeight, "fractal-height", 0, "height in rows (default: 22)")
+
+	var fractalIter int
+	fs.IntVar(&fractalIter, "fractal-iter", 0, "maximum iterations (default: 64; higher = more detail)")
+
+	var fractalColor bool
+	fs.BoolVar(&fractalColor, "fractal-color", false, "enable ANSI 256-colour output for the fractal")
+
 	var pause bool
 	if internalFlagsEnabled {
 		// -pause is an internal flag for integration tests; empty usage hides it
@@ -74,7 +89,16 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 	}
 
-	if err := app.Run(ctx, app.Config{Verbose: verbose, Output: stdout, Log: stderr}); err != nil {
+	if err := app.Run(ctx, app.Config{
+		Verbose:       verbose,
+		Output:        stdout,
+		Log:           stderr,
+		Fractal:       fractal,
+		FractalWidth:  fractalWidth,
+		FractalHeight: fractalHeight,
+		FractalIter:   fractalIter,
+		FractalColor:  fractalColor,
+	}); err != nil {
 		if ctx.Err() != nil {
 			// Context was cancelled by SIGINT/SIGTERM — suppress the message and
 			// exit 130 (128+SIGINT) per POSIX signal exit-code convention.

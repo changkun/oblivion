@@ -158,3 +158,74 @@ func TestRun_CancelledContext(t *testing.T) {
 	require.Error(t, err, "Run must return an error when context is already cancelled")
 	assert.Empty(t, buf.String(), "Run must not write output when context is cancelled")
 }
+
+// TestRun_Fractal exercises the Mandelbrot-set rendering path.
+func TestRun_Fractal(t *testing.T) {
+	t.Run("fractal mode produces output", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := app.Run(context.Background(), app.Config{
+			Output:        &buf,
+			Fractal:       true,
+			FractalWidth:  20,
+			FractalHeight: 5,
+			FractalIter:   16,
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, buf.String(), "fractal run must write output")
+	})
+
+	t.Run("fractal output has correct line count", func(t *testing.T) {
+		var buf bytes.Buffer
+		const h = 7
+		err := app.Run(context.Background(), app.Config{
+			Output:        &buf,
+			Fractal:       true,
+			FractalWidth:  20,
+			FractalHeight: h,
+			FractalIter:   16,
+		})
+		require.NoError(t, err)
+		lines := strings.Count(buf.String(), "\n")
+		assert.Equal(t, h, lines, "fractal output should have FractalHeight newlines")
+	})
+
+	t.Run("fractal mode with colour enabled", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := app.Run(context.Background(), app.Config{
+			Output:        &buf,
+			Fractal:       true,
+			FractalWidth:  10,
+			FractalHeight: 3,
+			FractalIter:   16,
+			FractalColor:  true,
+		})
+		require.NoError(t, err)
+		assert.True(t, strings.Contains(buf.String(), "\x1b["),
+			"colour mode output should contain ANSI escape codes")
+	})
+
+	t.Run("fractal mode uses defaults when dimensions are zero", func(t *testing.T) {
+		var buf bytes.Buffer
+		err := app.Run(context.Background(), app.Config{
+			Output:  &buf,
+			Fractal: true,
+			// Width=0, Height=0, Iter=0 → should default to 78×22×64.
+		})
+		require.NoError(t, err)
+		lines := strings.Count(buf.String(), "\n")
+		assert.Equal(t, 22, lines, "default fractal height should be 22")
+	})
+
+	t.Run("fractal mode with cancelled context returns error", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		var buf bytes.Buffer
+		err := app.Run(ctx, app.Config{
+			Output:        &buf,
+			Fractal:       true,
+			FractalWidth:  10,
+			FractalHeight: 3,
+		})
+		require.Error(t, err, "fractal run with cancelled context must return an error")
+	})
+}

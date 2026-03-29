@@ -89,6 +89,20 @@ func TestRun(t *testing.T) {
 			wantStdout: false,
 			wantStderr: false,
 		},
+		{
+			name:       "-fractal flag exits 0 and writes to stdout",
+			args:       []string{"-fractal", "-fractal-width=20", "-fractal-height=4", "-fractal-iter=16"},
+			wantCode:   0,
+			wantStdout: true,
+			wantStderr: false,
+		},
+		{
+			name:       "-fractal-color flag exits 0",
+			args:       []string{"-fractal", "-fractal-color", "-fractal-width=10", "-fractal-height=3", "-fractal-iter=8"},
+			wantCode:   0,
+			wantStdout: true,
+			wantStderr: false,
+		},
 	}
 
 	for _, tt := range tests {
